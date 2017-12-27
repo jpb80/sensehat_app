@@ -4,6 +4,8 @@
 import sense_hat
 import logging as _log
 import datetime
+import time
+
 
 def _logger_config():
     _log.basicConfig(level=_log.INFO, format=("[###%(levelname)s] "
@@ -45,29 +47,38 @@ def _determine_temp_led_color(temp_fahrenheit):
 def _get_local_time():
     return datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 
+
 def main():
     _logger_config()
     sense = sense_hat.SenseHat()
 
-    north = sense.get_compass()
-    print("North: {0:.1f}".format(north))
+    while True:
+        event = sense.stick.wait_for_event(emptybuffer=True)
+        if event.action == stick.ACTION_PRESSED:
+            if event.direction == stick.DIRECTION_MIDDLE:
+                sense.show_message(_get_local_time(), text_colour=[255,0,255])
+            elif event.direction == stick.DIRECTION_UP:
+                sense.show_message("{0:.1f} %%rH".format(humidity),
+                                   text_colour=[255,0,255])
+            elif event.direction == stick.DIRECTION_DOWN:
+                sense.show_message("{0:.1f} °F".format(curr_temp),
+                                   text_colour=_determine_temp_led_color(curr_temp))
+            elif event.direction == stick.DIRECTION_LEFT:
+                sense.show_message("{0:.3f} mbar".format(curr_pressure),
+                                text_colour=[255,0,255])
+        while event is not None:
+            north = sense.get_compass()
+            print("{0:.1f}°N".format(north))
 
-    humidity = sense.get_humidity()
-    print("Humidity: {0:.1f} %%rH".format(humidity))
+            humidity = sense.get_humidity()
+            print("{0:.1f} %%rH".format(humidity))
 
-    curr_temp = _convert_to_farenheit(sense.get_temperature_from_humidity())
-    print("Local temp: {0:.1f}°F".format(curr_temp))
+            curr_temp = _convert_to_farenheit(sense.get_temperature_from_humidity())
+            print("{0:.1f}°F".format(curr_temp))
 
-    curr_pressure = sense.get_pressure()
-    print("Pressure: {0:.4f} Millibars".format(curr_pressure))
-
-    sense.show_message(str(curr_temp),
-        text_colour=_determine_temp_led_color(curr_temp))
-
-    event = sense.stick.wait_for_event(emptybuffer=True)
-    if event.action == stick.ACTION_PRESSED:
-        if event.direction == stick.DIRECTION_MIDDLE:
-            sense.show_message(_get_local_time, text_colour=[255,0,255])
+            curr_pressure = sense.get_pressure()
+            print("{0:.4f} Millibars".format(curr_pressure))
+            time.sleep(2)
 
 
 if __name__ == '__main__':
